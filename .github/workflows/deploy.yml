@@ -61,38 +61,42 @@ jobs:
           kubernetes-version: v1.25.3
           driver: docker
           
-      - name: Get kubeconfig
+      - name: Configure minikube
         run: |
           mkdir -p $HOME/.kube
           minikube update-context
           kubectl config use-context minikube
+          # Tell minikube to use the host Docker daemon
+          eval $(minikube -p minikube docker-env)
+          # Verify connection
+          kubectl get nodes
           
       - name: Update Kubernetes manifests
         run: |
           # Create a directory for modified manifests
           mkdir -p modified-manifests
 
-          # Update API Gateway manifest
+          # Update API Gateway manifest with image and pull policy
           cat kubernetes/services/api-gateway.yaml | \
-            sed "s|image:.*api-gateway.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}|g" \
+            sed "s|image:.*api-gateway.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}\n        imagePullPolicy: Always|g" \
             > modified-manifests/api-gateway.yaml
 
-          # Update Users Service manifest
+          # Update Users Service manifest with image and pull policy
           cat kubernetes/services/users-service.yaml | \
-            sed "s|image:.*users-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}|g" \
+            sed "s|image:.*users-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}\n        imagePullPolicy: Always|g" \
             > modified-manifests/users-service.yaml
 
-          # Update Products Service manifest
+          # Update Products Service manifest with image and pull policy
           cat kubernetes/services/products-service.yaml | \
-            sed "s|image:.*products-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}|g" \
+            sed "s|image:.*products-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}\n        imagePullPolicy: Always|g" \
             > modified-manifests/products-service.yaml
 
-          # Update Orders Service manifest
+          # Update Orders Service manifest with image and pull policy
           cat kubernetes/services/orders-service.yaml | \
-            sed "s|image:.*orders-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}|g" \
+            sed "s|image:.*orders-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}\n        imagePullPolicy: Always|g" \
             > modified-manifests/orders-service.yaml
 
-      - name: Load Docker images into minikube
+      - name: Verify Docker images
         run: |
           # Pull images from Docker Hub
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
@@ -100,11 +104,8 @@ jobs:
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
           
-          # Load images into minikube
-          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
-          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}
-          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
-          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
+          # List images to verify
+          docker images | grep ${{ secrets.DOCKER_HUB_USERNAME }}
           
       - name: Create namespace and apply ConfigMaps/Secrets
         run: |
