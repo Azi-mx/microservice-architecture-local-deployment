@@ -53,12 +53,19 @@ jobs:
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
+
+      - name: Setup Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          minikube-version: 1.28.0
+          kubernetes-version: v1.25.3
+          driver: docker
           
-      - name: Set up kubeconfig for local cluster
+      - name: Get kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          minikube update-context
+          kubectl config use-context minikube
           
       - name: Update Kubernetes manifests
         run: |
@@ -85,7 +92,35 @@ jobs:
             sed "s|image:.*orders-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}|g" \
             > modified-manifests/orders-service.yaml
 
-      - name: Deploy to local Kubernetes
+      - name: Load Docker images into minikube
+        run: |
+          # Pull images from Docker Hub
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
+          
+          # Load images into minikube
+          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
+          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}
+          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
+          minikube image load ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
+          
+      - name: Create namespace and apply ConfigMaps/Secrets
+        run: |
+          # Create namespace
+          kubectl create namespace microservices || true
+          
+          # Apply ConfigMaps and Secrets
+          kubectl apply -f kubernetes/config/configmaps.yaml -n microservices || true
+          kubectl apply -f kubernetes/config/secrets.yaml -n microservices || true
+          
+          # Apply database and messaging resources
+          kubectl apply -f kubernetes/databases/mongodb.yaml -n microservices || true
+          kubectl apply -f kubernetes/databases/postgres.yaml -n microservices || true
+          kubectl apply -f kubernetes/messaging/rabbitmq.yaml -n microservices || true
+          
+      - name: Deploy microservices
         run: |
           # Apply the modified manifests with validation disabled
           kubectl apply -f modified-manifests/api-gateway.yaml -n microservices --validate=false
