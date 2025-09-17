@@ -80,6 +80,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'API Gateway is healthy' });
 });
 
+// CI/CD test endpoint - Added to test GitHub Actions pipeline
+app.get('/cicd-test', (req, res) => {
+  const buildTime = new Date().toISOString();
+  res.json({ 
+    message: 'CI/CD pipeline is working!',
+    buildTime: buildTime,
+    kubernetes: process.env.KUBERNETES_SERVICE_HOST ? true : false,
+    version: '1.0.1'
+  });
+});
+
 // Service status endpoint
 app.get('/status', async (req, res) => {
   try {

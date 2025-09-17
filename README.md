@@ -188,16 +188,45 @@ kubernetes/
 └── deploy.ps1
 ```
 
+## CI/CD Pipeline
+
+This project includes a GitHub Actions CI/CD pipeline for automated testing, building, and deployment to Kubernetes.
+
+### Pipeline Features
+
+- **Automated Testing**: Runs tests for all microservices
+- **Docker Image Building**: Builds and pushes Docker images to Docker Hub
+- **Kubernetes Deployment**: Automatically deploys to Kubernetes environments
+- **Environment Support**: Supports staging and production environments
+- **Manual Triggers**: Can be manually triggered for specific environments
+
+### GitHub Secrets Required
+
+- `DOCKER_HUB_USERNAME`: Your Docker Hub username
+- `DOCKER_HUB_TOKEN`: Docker Hub access token
+- `KUBE_CONFIG_STAGING`: Base64-encoded kubeconfig for staging
+- `KUBE_CONFIG_PRODUCTION`: Base64-encoded kubeconfig for production
+
+### CI/CD Test Endpoint
+
+To verify the CI/CD pipeline is working, access the test endpoint:
+
+```
+GET /cicd-test
+```
+
+This endpoint returns build information and confirms the deployment is working.
+
 ## Next Steps for Learning
 
 1. ✅ Add persistent databases to each service
 2. ✅ Implement Kubernetes deployment
-3. Implement authentication and authorization
-4. Add service discovery with tools like Consul or Eureka
-5. Implement circuit breakers with Hystrix or similar tools
-6. Add monitoring and logging with ELK stack or Prometheus/Grafana
-7. ✅ Implement message queues for asynchronous communication
-8. Create CI/CD pipelines for each service
+3. ✅ Create CI/CD pipelines for each service
+4. Implement authentication and authorization
+5. Add service discovery with tools like Consul or Eureka
+6. Implement circuit breakers with Hystrix or similar tools
+7. Add monitoring and logging with ELK stack or Prometheus/Grafana
+8. ✅ Implement message queues for asynchronous communication
 9. Add comprehensive error handling and retry mechanisms
 10. Implement API versioning
 11. Add caching layer for improved performance
