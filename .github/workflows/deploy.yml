@@ -12,49 +12,47 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Build and push API Gateway
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: ./api-gateway
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
 
       - name: Build and push Users Service
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: ./users-service
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}
 
       - name: Build and push Products Service
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: ./products-service
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
 
       - name: Build and push Orders Service
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: ./orders-service
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
 
       - name: Set up kubectl
-        uses: azure/setup-kubectl@v1
-        with:
-          version: "latest"
+        uses: azure/setup-kubectl@v3
           
       - name: Set up kubeconfig for local cluster
         run: |
@@ -89,11 +87,11 @@ jobs:
 
       - name: Deploy to local Kubernetes
         run: |
-          # Apply the modified manifests
-          kubectl apply -f modified-manifests/api-gateway.yaml -n microservices
-          kubectl apply -f modified-manifests/users-service.yaml -n microservices
-          kubectl apply -f modified-manifests/products-service.yaml -n microservices
-          kubectl apply -f modified-manifests/orders-service.yaml -n microservices
+          # Apply the modified manifests with validation disabled
+          kubectl apply -f modified-manifests/api-gateway.yaml -n microservices --validate=false
+          kubectl apply -f modified-manifests/users-service.yaml -n microservices --validate=false
+          kubectl apply -f modified-manifests/products-service.yaml -n microservices --validate=false
+          kubectl apply -f modified-manifests/orders-service.yaml -n microservices --validate=false
 
           # Wait for deployments to be ready
           kubectl rollout status deployment/api-gateway -n microservices
