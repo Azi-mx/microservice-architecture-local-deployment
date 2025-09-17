@@ -1,0 +1,130 @@
+# MongoDB for Users Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-users
+  labels:
+    app: mongodb-users
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+  clusterIP: None
+  selector:
+    app: mongodb-users
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb-users
+spec:
+  serviceName: mongodb-users
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-users
+  template:
+    metadata:
+      labels:
+        app: mongodb-users
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6.0
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        volumeMounts:
+        - name: mongodb-users-data
+          mountPath: /data/db
+        env:
+        - name: MONGO_INITDB_DATABASE
+          value: "users_db"
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "root"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "example"
+        envFrom:
+        - secretRef:
+            name: mongodb-secrets
+      volumes:
+      - name: mongodb-users-data
+        persistentVolumeClaim:
+          claimName: mongodb-users-data-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-users-data-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+# MongoDB for Products Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-products
+  labels:
+    app: mongodb-products
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+  clusterIP: None
+  selector:
+    app: mongodb-products
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb-products
+spec:
+  serviceName: mongodb-products
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-products
+  template:
+    metadata:
+      labels:
+        app: mongodb-products
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6.0
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        volumeMounts:
+        - name: mongodb-products-data
+          mountPath: /data/db
+        env:
+        - name: MONGO_INITDB_DATABASE
+          value: "products_db"
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "root"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "example"
+        envFrom:
+        - secretRef:
+            name: mongodb-secrets
+      volumes:
+      - name: mongodb-products-data
+        persistentVolumeClaim:
+          claimName: mongodb-products-data-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-products-data-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

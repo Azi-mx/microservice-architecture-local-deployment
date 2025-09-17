@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: users-config
+data:
+  MONGODB_URI: "mongodb://root:example@mongodb-users:27017/users_db?authSource=admin"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  USERS_SERVICE_URL: "http://users-service:3001"
+  PRODUCTS_SERVICE_URL: "http://products-service:3002"
+  ORDERS_SERVICE_URL: "http://orders-service:3003"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: products-config
+data:
+  MONGODB_URI: "mongodb://root:example@mongodb-products:27017/products_db?authSource=admin"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  USERS_SERVICE_URL: "http://users-service:3001"
+  PRODUCTS_SERVICE_URL: "http://products-service:3002"
+  ORDERS_SERVICE_URL: "http://orders-service:3003"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders-config
+data:
+  DATABASE_URL: "postgresql://postgres:postgres@postgres-orders:5432/orders_db"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  USERS_SERVICE_URL: "http://users-service:3001"
+  PRODUCTS_SERVICE_URL: "http://products-service:3002"
+  ORDERS_SERVICE_URL: "http://orders-service:3003"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  USERS_SERVICE_URL: "http://users-service:3001"
+  PRODUCTS_SERVICE_URL: "http://products-service:3002"
+  ORDERS_SERVICE_URL: "http://orders-service:3003"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"

@@ -1,0 +1,113 @@
+name: Build and Deploy to Local Kubernetes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push API Gateway
+        uses: docker/build-push-action@v2
+        with:
+          context: ./api-gateway
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}
+
+      - name: Build and push Users Service
+        uses: docker/build-push-action@v2
+        with:
+          context: ./users-service
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}
+
+      - name: Build and push Products Service
+        uses: docker/build-push-action@v2
+        with:
+          context: ./products-service
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}
+
+      - name: Build and push Orders Service
+        uses: docker/build-push-action@v2
+        with:
+          context: ./orders-service
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          version: "latest"
+          
+      - name: Set up kubeconfig for local cluster
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+          
+      - name: Update Kubernetes manifests
+        run: |
+          # Create a directory for modified manifests
+          mkdir -p modified-manifests
+
+          # Update API Gateway manifest
+          cat kubernetes/services/api-gateway.yaml | \
+            sed "s|image:.*api-gateway.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/api-gateway:${{ github.sha }}|g" \
+            > modified-manifests/api-gateway.yaml
+
+          # Update Users Service manifest
+          cat kubernetes/services/users-service.yaml | \
+            sed "s|image:.*users-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/users-service:${{ github.sha }}|g" \
+            > modified-manifests/users-service.yaml
+
+          # Update Products Service manifest
+          cat kubernetes/services/products-service.yaml | \
+            sed "s|image:.*products-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/products-service:${{ github.sha }}|g" \
+            > modified-manifests/products-service.yaml
+
+          # Update Orders Service manifest
+          cat kubernetes/services/orders-service.yaml | \
+            sed "s|image:.*orders-service.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/orders-service:${{ github.sha }}|g" \
+            > modified-manifests/orders-service.yaml
+
+      - name: Deploy to local Kubernetes
+        run: |
+          # Apply the modified manifests
+          kubectl apply -f modified-manifests/api-gateway.yaml -n microservices
+          kubectl apply -f modified-manifests/users-service.yaml -n microservices
+          kubectl apply -f modified-manifests/products-service.yaml -n microservices
+          kubectl apply -f modified-manifests/orders-service.yaml -n microservices
+
+          # Wait for deployments to be ready
+          kubectl rollout status deployment/api-gateway -n microservices
+          kubectl rollout status deployment/users-service -n microservices
+          kubectl rollout status deployment/products-service -n microservices
+          kubectl rollout status deployment/orders-service -n microservices
+          
+      - name: Verify deployment
+        run: |
+          echo "Deployments:"
+          kubectl get deployments -n microservices
+          
+          echo "Services:"
+          kubectl get services -n microservices
+          
+          echo "Ingress:"
+          kubectl get ingress -n microservices

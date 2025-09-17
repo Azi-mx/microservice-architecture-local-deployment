@@ -1,0 +1,104 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - users-service
+      - products-service
+      - orders-service
+      - rabbitmq
+    environment:
+      - USERS_SERVICE_URL=http://users-service:3001
+      - PRODUCTS_SERVICE_URL=http://products-service:3002
+      - ORDERS_SERVICE_URL=http://orders-service:3003
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+
+  users-service:
+    build: ./users-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - rabbitmq
+      - mongodb-users
+    environment:
+      - PORT=3001
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGODB_URI=mongodb://mongodb-users:27017/users_db
+
+  products-service:
+    build: ./products-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - rabbitmq
+      - mongodb-products
+    environment:
+      - PORT=3002
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGODB_URI=mongodb://mongodb-products:27017/products_db
+
+  orders-service:
+    build: ./orders-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - rabbitmq
+      - postgres-orders
+    environment:
+      - PORT=3003
+      - USERS_SERVICE_URL=http://users-service:3001
+      - PRODUCTS_SERVICE_URL=http://products-service:3002
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - SUPABASE_URL=https://ccqjdxlwtrljcudvulsa.supabase.co
+      - SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjcWpkeGx3dHJsamN1ZHZ1bHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2NzkzMTgsImV4cCI6MjA3MzI1NTMxOH0.ZnVnF4RYFncwGW4C4Ta7u5Ha7WscaVFRmaSOHe7PruA
+      - DATABASE_URL=postgresql://postgres:azim%40143@db.ccqjdxlwtrljcudvulsa.supabase.co:5432/postgres?schema=public
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  # Database services
+  mongodb-users:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_users_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=users_db
+
+  mongodb-products:
+    image: mongo:6
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_products_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=products_db
+
+  postgres-orders:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=orders_db
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+
+volumes:
+  rabbitmq_data:
+  mongodb_users_data:
+  mongodb_products_data:
+  postgres_orders_data:
